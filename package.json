@@ -9,8 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "apexcharts": "^3.53.0",
+    "axios": "^1.7.7",
+    "bootstrap": "^5.3.3",
+    "mini-css-extract-plugin": "^2.9.1",
+    "next": "14.2.7",
     "react": "^18",
+    "react-apexcharts": "^1.4.1",
     "react-dom": "^18",
-    "next": "14.2.7"
+    "react-toastify": "^10.0.5"
   }
 }
