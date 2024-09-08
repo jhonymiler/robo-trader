@@ -6,7 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 export default function Home() {
-    const { operations, setOperations, candleData, setCandleData, emaData, setEmaData, currentPrice, setCurrentPrice } = useCandleData();
+    const { operations, setOperations, candleData, setCandleData, setEmaData, currentPrice, setCurrentPrice, setStopPrice } = useCandleData();
     const [timeframe, setTimeframe] = useState('1m');
     const [totalProfit, setTotalProfit] = useState(0);
 
@@ -138,7 +138,7 @@ export default function Home() {
     };
 
     const initialCapital = 100;
-    executeStrategy(candleData, operations, updateOperations, initialCapital, notify);
+    executeStrategy(candleData, operations, updateOperations, initialCapital, setStopPrice, notify);
 
 
     return (

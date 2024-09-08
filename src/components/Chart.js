@@ -5,7 +5,7 @@ import { useCandleData } from './CandleDataContext';
 const ApexCharts = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 export default function Chart({ timeframe }) {
-    const { candleData, emaData, operations = [] } = useCandleData();
+    const { candleData, emaData, operations = [], stopPrice } = useCandleData();
     const [chartOptions, setChartOptions] = useState({
         series: [],
         chart: { height: 600, type: 'candlestick' },
@@ -21,26 +21,43 @@ export default function Chart({ timeframe }) {
     const initializeChart = () => {
         const annotations = operations.flatMap((op) => [
             {
-                x: new Date(op.buyTime).getTime(),
+                y: new Date(op.buyTime).getTime(),
+                borderColor: '#00ff00',
                 label: {
                     style: {
                         color: '#fff',
                         background: 'green'
                     },
-                    text: 'Compra',
+                    text: op.buyPrice,
                 }
             },
             op.sellPrice && {
-                x: new Date(op.sellTime).getTime(),
+                y: new Date(op.sellTime).getTime(),
+                borderColor: '#ff0000',
                 label: {
                     style: {
                         color: '#fff',
                         background: 'red'
                     },
-                    text: 'Venda',
+                    text: op.sellPrice,
                 }
             }
         ]).filter(Boolean);
+
+        if (stopPrice) {
+            annotations.push({
+                y: stopPrice,  // Valor do preço de stop
+                borderColor: '#ff0000',
+                label: {
+                    borderColor: '#ff0000',
+                    style: {
+                        color: '#fff',
+                        background: '#ff0000'
+                    },
+                    text: 'Stop',
+                }
+            });
+        }
 
         const options = {
             series: [{
@@ -51,7 +68,7 @@ export default function Chart({ timeframe }) {
                 name: 'Candle',
                 type: 'candlestick',
                 data: candleData.map(candle => ({
-                    x: candle.x.getTime(),
+                    x: new Date(candle.x).getTime(),
                     y: candle.y
                 }))
             }],
@@ -66,9 +83,10 @@ export default function Chart({ timeframe }) {
                 type: 'datetime'
             },
             annotations: {
-                xaxis: annotations
+                xaxis: annotations,
+                yaxis: annotations.filter(a => a.y) // Anotações de stop
             },
-           
+
         };
 
         setChartOptions((prevOptions) => {
