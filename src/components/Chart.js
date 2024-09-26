@@ -21,7 +21,7 @@ export default function Chart({ timeframe }) {
     const initializeChart = () => {
         const annotations = operations.flatMap((op) => [
             {
-                y: new Date(op.buyTime).getTime(),
+                y: op.buyPrice,
                 borderColor: '#00ff00',
                 label: {
                     style: {
@@ -32,7 +32,7 @@ export default function Chart({ timeframe }) {
                 }
             },
             op.sellPrice && {
-                y: new Date(op.sellTime).getTime(),
+                y: op.sellPrice,
                 borderColor: '#ff0000',
                 label: {
                     style: {

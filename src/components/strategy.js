@@ -47,16 +47,6 @@ function checkReversalCondition(closes, ema, index, volatilityCondition) {
     return (crossover || crossunder) && volatilityCondition;
 }
 
-// Função para ajustar o stop móvel com busca de saídas mais altas
-function updateTrailingStopWithHigherExit(currentPrice, previousHigh, trailingStop, atr, atrMultiplier = 0.1) {
-    // Atualiza o trailing stop apenas se o preço atual for maior que o topo anterior
-    if (currentPrice > previousHigh) {
-        return Math.max(trailingStop, currentPrice - (atr * atrMultiplier));
-    } else {
-        // Mantém o trailing stop anterior
-        return trailingStop;
-    }
-}
 
 export function executeStrategy(candleData, operations, updateOperations, capital, setStopPrice, notify) {
     const emaLength = 9;
@@ -74,12 +64,11 @@ export function executeStrategy(candleData, operations, updateOperations, capita
     let atr = calculateATR(highs, lows, closes, atrLength)[lastCandleIndex - atrLength];
 
     const volatilityCondition = (highs[lastCandleIndex] - lows[lastCandleIndex]) > (atr * atrMultiplier);
-    const trailingStopInitial = atr * 0.1;
+    const trailingStopInitial = atr * 0.5;
 
     // Calcular a fração de BTC que pode ser comprada com 90% do capital disponível
     const btcQty = capital * 0.9 / closes[lastCandleIndex];
     let stop = lows[lastCandleIndex - 1] - trailingStopInitial;
-    let trailingStop = stop;
 
     let reversalCondition = checkReversalCondition(closes, ema, lastCandleIndex, volatilityCondition);
 
@@ -91,17 +80,15 @@ export function executeStrategy(candleData, operations, updateOperations, capita
             closes[lastCandleIndex] > ema[lastCandleIndex]
             && closes[lastCandleIndex - 1] > ema[lastCandleIndex - 1]
             && closes[lastCandleIndex] < opens[lastCandleIndex]
-            && (closes[lastCandleIndex] - opens[lastCandleIndex]) < (closes[lastCandleIndex] - lows[lastCandleIndex])) {
+            && (opens[lastCandleIndex] - closes[lastCandleIndex]) < (closes[lastCandleIndex] - lows[lastCandleIndex])) {
             operations.push({
                 buyTime: candleData[lastCandleIndex].x,
                 buyPrice: closes[lastCandleIndex],
                 qty: btcQty,
-                stop: stop,
-                trailingStop: trailingStop,
                 capitalUsed: capital * 0.9,  // Utilizando 90% do capital
                 type: "Compra Reversão com Pavio"
             });
-
+            setStopPrice(0)
             updateOperations(operations);
             notify('Compra Reversão com Pavio executada', 'info');
             console.log("Compra Reversão com Pavio executada", "Qty:", btcQty, "Stop:", stop);
@@ -113,12 +100,10 @@ export function executeStrategy(candleData, operations, updateOperations, capita
                 buyTime: candleData[lastCandleIndex].x,
                 buyPrice: closes[lastCandleIndex],
                 qty: btcQty,
-                stop: stop,
-                trailingStop: trailingStop,
                 capitalUsed: capital * 0.9,  // Utilizando 90% do capital
                 type: "Compra Reversão"
             });
-
+            setStopPrice(0)
             updateOperations(operations);
             notify('Compra Reversão executada', 'info');
             console.log("Compra Reversão executada", "Qty:", btcQty, "Stop:", stop);
@@ -131,11 +116,11 @@ export function executeStrategy(candleData, operations, updateOperations, capita
 
         if (!lastOperation.sellPrice) {
             // Atualizar o stop móvel com base na busca por saídas mais altas
-            const previousHigh = highs[lastCandleIndex - 1];
-            trailingStop = updateTrailingStopWithHigherExit(closes[lastCandleIndex], previousHigh, lastOperation.trailingStop, atr);
-            setStopPrice(trailingStop)
+            const previousLow = lows[lastCandleIndex - 1];
+            stop = previousLow - trailingStopInitial;
+            setStopPrice(stop)
             // Verificar se o preço atual caiu abaixo do trailing stop
-            if (closes[lastCandleIndex] < trailingStop) {
+            if (closes[lastCandleIndex] <= stop) {
                 // Executar venda
                 lastOperation.sellTime = candleData[lastCandleIndex].x;
                 lastOperation.sellPrice = closes[lastCandleIndex];
